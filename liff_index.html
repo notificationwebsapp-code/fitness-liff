@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Fitness Booking</title>
+<style>
+:root{--pri:#1e40af;--pri-d:#1e3a8a;--bg:#f4f6fa;--card:#fff;--line:#d9dfe8;--tx:#0f172a;--mut:#5b6678;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Noto Sans Thai",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:84px}
+header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;display:flex;align-items:center;gap:8px;padding:12px 16px}
+header h1{font-size:18px;margin:0;flex:1}
+header button{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;min-height:40px}
+main{max-width:640px;margin:0 auto;padding:14px}
+h2{font-size:17px;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 10px}
+.row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.t{font-weight:700}.m{color:var(--mut);font-size:14px}
+.tag{display:inline-block;border-radius:99px;padding:2px 10px;font-size:13px;font-weight:600;background:#e8edf5;color:#334155}
+.tag.ok{background:#dcfce7;color:var(--ok)}.tag.warn{background:#fef3c7;color:var(--warn)}.tag.bad{background:#fee2e2;color:var(--bad)}
+button,.btn{font:inherit;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--tx);padding:10px 16px;min-height:46px;cursor:pointer}
+button.pri{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:700}
+button.bad{color:var(--bad);border-color:#f3c3c3}
+button[disabled]{opacity:.55;cursor:default}
+button.wide{width:100%}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input[type=text],input[type=tel]{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:12px;min-height:46px;background:#fff}
+.consent{max-height:260px;overflow:auto;white-space:pre-wrap;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafbfd;font-size:14px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0;font-weight:600}.chk input{width:24px;height:24px;margin-top:2px;flex:none}
+.err{background:#fee2e2;color:var(--bad);border-radius:12px;padding:10px 12px;margin:10px 0;white-space:pre-line}
+.note{background:#eef4ff;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;border-radius:0;background:#fff;min-height:58px;font-size:14px;color:var(--mut)}
+nav button.on{color:var(--pri);font-weight:700;box-shadow:inset 0 3px 0 var(--pri)}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.modal{background:#fff;width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px;max-height:88vh;overflow:auto}
+.modal .acts{display:flex;gap:10px;margin-top:14px}.modal .acts button{flex:1}
+.copy{display:flex;gap:8px;align-items:center}.copy b{font-size:20px;letter-spacing:1px;word-break:break-all}
+.center{text-align:center;padding:40px 10px}
+.spin{display:inline-block;width:26px;height:26px;border:3px solid #cbd5e1;border-top-color:var(--pri);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header><h1 id="ttl">Fitness Booking</h1><button id="lg" aria-label="language">EN</button></header>
+<main id="app"><div class="center"><span class="spin"></span></div></main>
+<nav id="nav" hidden></nav>
+<div id="mroot"></div>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+/* ===== ตั้งค่า 2 ค่านี้ก่อนนำขึ้นใช้ (ดูคู่มือ) ===== */
+var LIFF_ID = '2012705333-ebtO41R4';
+var API_URL = 'https://script.google.com/macros/s/AKfycbyxCFcv1vHDPK8uJiK8Tc2KTxBN-CjMbFkO7wOn8ypDGhZR7fwxhWYsN3tTP-CANPo/exec';
+/* ================================================ */
+var LANG = 'th', ME = null, CFG = null, TAB = 'cls', BUSY = false, RELOGIN = 0;
+var $ = function (i) { return document.getElementById(i); };
+function h(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); }
+function L(th, en) { return LANG === 'th' ? th : en; }
+var ERR = {
+  E_DISABLED: ['ระบบจองด้วยตนเองยังไม่เปิดใช้งาน', 'Self-booking is not open yet.'],
+  E_NOT_READY: ['ระบบยังไม่พร้อมให้สมัคร (ข้อความความยินยอมยังไม่เรียบร้อย) กรุณาติดต่อผู้ดูแล', 'Registration is not ready yet. Please contact the administrator.'],
+  E_AUTH: ['ยืนยันตัวตนกับ LINE ไม่สำเร็จ กรุณาเปิดหน้านี้ใหม่จาก LINE', 'Could not verify your LINE identity. Please reopen this page from LINE.'],
+  E_BUSY: ['ใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่', 'Too many requests. Please wait a moment and try again.'],
+  E_BLOCKED: ['ลองผิดหลายครั้ง ระบบพักการสมัครชั่วคราว 15 นาที หรือติดต่อผู้ดูแล', 'Too many attempts. Registration is paused for 15 minutes, or contact the administrator.'],
+  E_BAD_REQUEST: ['ข้อมูลที่ส่งไม่ถูกต้อง', 'Invalid request.'],
+  E_CONSENT: ['ต้องยินยอมข้อความล่าสุดก่อนใช้งาน', 'You must accept the latest consent first.'],
+  E_VALID: ['กรอกข้อมูลไม่ครบหรือไม่ถูกต้อง', 'Some information is missing or invalid.'],
+  E_NOT_REGISTERED: ['ยังไม่ได้ลงทะเบียน', 'You are not registered yet.'],
+  E_NEEDS_ADMIN: ['ข้อมูลไม่ตรงกับที่มีในระบบ หรือบัญชีนี้ต้องให้ผู้ดูแลช่วยตรวจ กรุณาติดต่อผู้ดูแล', 'Your details do not match our records, or an administrator must check this. Please contact the administrator.'],
+  E_ID_TAKEN: ['รหัสพนักงานนี้ผูกกับบัญชี LINE อื่นแล้ว หากไม่ใช่ท่าน กรุณาติดต่อผู้ดูแล', 'This employee ID is already linked to another LINE account. If that is not you, contact the administrator.'],
+  E_NOTFOUND: ['ไม่พบรายการ', 'Not found.'],
+  E_SESSION_CLOSED: ['รอบนี้ปิดรับหรือถูกยกเลิกแล้ว', 'This session is closed or cancelled.'],
+  E_STARTED: ['รอบนี้เริ่มไปแล้ว', 'This session has already started.'],
+  E_TOO_EARLY: ['ยังไม่เปิดให้จองรอบนี้ล่วงหน้า', 'This session is not open for booking yet.'],
+  E_DUP: ['ท่านจองรอบนี้ไว้แล้ว', 'You already booked this session.'],
+  E_MAX_OPEN: ['มีรายการที่ยังไม่ชำระครบจำนวนที่กำหนด กรุณาชำระหรือยกเลิกก่อนจองเพิ่ม', 'You have too many unpaid bookings. Pay or cancel one before booking more.'],
+  E_FULL: ['รอบนี้เต็มแล้ว', 'This session is full.'],
+  E_STATE: ['ทำรายการนี้ไม่ได้ในสถานะปัจจุบัน', 'This cannot be done in the current status.'],
+  E_NETWORK: ['เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่', 'Cannot reach the server. Check your connection and try again.'],
+  E_SERVER: ['ระบบขัดข้อง กรุณาลองใหม่ภายหลัง', 'Something went wrong. Please try again later.']
+};
+function errText(code, field) {
+  var e = ERR[code] || ERR.E_SERVER, t = L(e[0], e[1]);
+  if (code === 'E_VALID' && field) t += '\n(' + ({employee_id: L('รหัสพนักงาน', 'Employee ID'), phone: L('เบอร์โทร', 'Phone'), name: L('ชื่อ', 'Name'), nickname: L('ชื่อเล่น', 'Nickname'), join_code: L('รหัสเข้าร่วม', 'Join code')}[field] || field) + ')';
+  return t;
+}
+var ST = {'ขอจอง': ['รอทีมงานยืนยัน', 'Waiting for confirmation', 'warn'], 'ยืนยันแล้ว': ['ยืนยันที่นั่งแล้ว รอโอนเงิน', 'Seat held, please pay', 'warn'], 'ชำระแล้ว': ['ส่งสลิปแล้ว รอตรวจ', 'Slip received, checking', 'warn'],
+  'จองสำเร็จ': ['จองสำเร็จ', 'Booked', 'ok'], 'เข้าเรียน': ['เข้าเรียนแล้ว', 'Attended', 'ok'], 'ยกเลิก': ['ยกเลิก', 'Cancelled', 'bad'], 'No-show': ['ไม่มาเรียน', 'No-show', 'bad'], 'ปฏิเสธ': ['ไม่อนุมัติ', 'Declined', 'bad'], 'หมดเวลา': ['หมดเวลาโอน', 'Payment time expired', 'bad']};
+function stTag(s) { var x = ST[s] || [s, s, '']; return '<span class="tag ' + x[2] + '">' + h(L(x[0], x[1])) + '</span>'; }
+var WD = {th: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'], en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']};
+var MO = {th: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']};
+function fd(d) { var p = String(d).split('-'); if (p.length < 3) return d; var dt = new Date(+p[0], +p[1] - 1, +p[2]); return WD[LANG][dt.getDay()] + ' ' + (+p[2]) + ' ' + MO[LANG][+p[1] - 1]; }
+function money(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+/* ----- API ----- */
+function call(action, extra) {
+  var body = Object.assign({action: action, idToken: action === 'config' ? '' : liff.getIDToken()}, extra || {});
+  return fetch(API_URL, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body)})
+    .then(function (r) { return r.json(); }, function () { throw {code: 'E_NETWORK'}; })
+    .then(function (j) {
+      if (j && j.ok) return j.data;
+      var code = (j && j.error) || 'E_SERVER';
+      if (code === 'E_AUTH' && RELOGIN < 1) { RELOGIN++; try { liff.logout(); } catch (x) {} liff.login({redirectUri: location.href}); return new Promise(function () {}); }
+      throw {code: code, field: j && j.field};
+    }, function (e) { if (e && e.code) throw e; throw {code: 'E_NETWORK'}; });
+}
+function fail(e) { var d = $('err'); var msg = errText(e && e.code, e && e.field); if (d) { d.hidden = false; d.textContent = msg; d.scrollIntoView({block: 'nearest'}); } else alertBox(msg); }
+function busy(btn, p) { if (BUSY) return p; BUSY = true; if (btn) btn.disabled = true; return p.then(function (r) { BUSY = false; if (btn) btn.disabled = false; return r; }, function (e) { BUSY = false; if (btn) btn.disabled = false; throw e; }); }
+
+/* ----- modal ----- */
+function modal(html) { var d = document.createElement('div'); d.className = 'modal-bg'; d.innerHTML = '<div class="modal" role="dialog" aria-modal="true">' + html + '</div>'; $('mroot').appendChild(d); d.close = function () { d.remove(); }; return d; }
+function alertBox(msg) { var d = modal('<p style="white-space:pre-line">' + h(msg) + '</p><div class="acts"><button class="pri" data-x>' + h(L('เข้าใจแล้ว', 'OK')) + '</button></div>'); d.querySelector('[data-x]').onclick = d.close; }
+function confirmBox(title, body, okText, bad, fn) {
+  var d = modal('<h3 style="margin:0 0 8px">' + h(title) + '</h3><div>' + body + '</div><div id="merr" class="err" hidden></div><div class="acts"><button data-c>' + h(L('ยกเลิก', 'Back')) + '</button><button class="' + (bad ? 'bad' : 'pri') + '" data-o>' + h(okText) + '</button></div>');
+  d.querySelector('[data-c]').onclick = d.close;
+  d.querySelector('[data-o]').onclick = function () {
+    var b = this; busy(b, fn()).then(function () { d.close(); }, function (e) { var m = d.querySelector('#merr'); m.hidden = false; m.textContent = errText(e && e.code, e && e.field); });
+  };
+}
+
+/* ----- screens ----- */
+function shell(html) { $('app').innerHTML = '<div id="err" class="err" hidden></div>' + html; }
+function setNav(on) {
+  var n = $('nav'); n.hidden = !on; if (!on) return;
+  n.innerHTML = [['cls', L('จองคลาส', 'Classes')], ['my', L('การจองของฉัน', 'My bookings')], ['me', L('โปรไฟล์', 'Profile')]].map(function (t) { return '<button data-t="' + t[0] + '" class="' + (TAB === t[0] ? 'on' : '') + '">' + h(t[1]) + '</button>'; }).join('');
+  n.querySelectorAll('button').forEach(function (b) { b.onclick = function () { TAB = b.getAttribute('data-t'); setNav(true); shell('<div class="center"><span class="spin"></span></div>'); load(); }; });
+}
+function contactHtml() { var c = CFG && CFG.contact; return c ? '<div class="note">' + h(L('ติดต่อผู้ดูแล: ', 'Contact the administrator: ')) + h(c) + '</div>' : ''; }
+function closedScreen(msg) { setNav(false); shell('<div class="card center"><p>' + h(msg) + '</p></div>' + contactHtml()); }
+function consentScreen(reconsent) {
+  setNav(false);
+  var f = reconsent ? '<div class="note">' + h(L('ข้อความความยินยอมมีการปรับปรุง กรุณาอ่านและยืนยันอีกครั้งเพื่อใช้งานต่อ', 'The consent text was updated. Please read and accept again to continue.')) + '</div>' :
+    '<label for="eid">' + h(L('รหัสพนักงาน', 'Employee ID')) + '</label><input id="eid" type="text" autocomplete="off" autocapitalize="characters">' +
+    '<label for="ph">' + h(L('เบอร์โทรศัพท์', 'Phone number')) + '</label><input id="ph" type="tel" inputmode="tel" autocomplete="tel">' +
+    '<div class="note">' + h(L('ถ้ามีข้อมูลของท่านอยู่ในระบบแล้ว ระบบจะตรวจรหัสพนักงานกับเบอร์โทรให้ตรงกัน ถ้าเป็นผู้ใช้ใหม่ กรอกชื่อด้านล่าง', 'If you are already in our records, your employee ID and phone must match. New users: fill in your name below.')) + '</div>' +
+    (CFG.need_code ? '<label for="jc">' + h(L('รหัสเข้าร่วม (ขอจากผู้ดูแล)', 'Join code (ask the administrator)')) + '</label><input id="jc" type="text" autocomplete="off">' : '') + '<label for="nm">' + h(L('ชื่อ-นามสกุล (ผู้ใช้ใหม่)', 'Full name (new users)')) + '</label><input id="nm" type="text" autocomplete="name">' +
+    '<label for="nk">' + h(L('ชื่อเล่น (ไม่บังคับ)', 'Nickname (optional)')) + '</label><input id="nk" type="text">';
+  shell('<h2>' + h(reconsent ? L('ยืนยันความยินยอมอีกครั้ง', 'Please confirm your consent') : L('ลงทะเบียนใช้งาน', 'Register')) + '</h2><div class="card">' + f +
+    '<h2>' + h(L('ข้อความความยินยอม (PDPA)', 'Consent (PDPA)')) + '</h2><div class="consent" id="ctext"></div>' +
+    '<label class="chk"><input type="checkbox" id="ck"> <span>' + h(L('ฉันได้อ่านและยินยอมให้เก็บ ใช้ และเปิดเผยข้อมูลส่วนบุคคลตามข้อความข้างต้น', 'I have read and consent to the collection, use and disclosure of my personal data as described above.')) + '</span></label>' +
+    '<button class="pri wide" id="go" disabled>' + h(reconsent ? L('ยืนยัน', 'Confirm') : L('ลงทะเบียน', 'Register')) + '</button></div>' + contactHtml());
+  $('ctext').textContent = CFG.consent_text; // textContent: never HTML
+  $('ck').onchange = function () { $('go').disabled = !this.checked; };
+  $('go').onclick = function () {
+    var b = this, ex = {consent: $('ck').checked === true, consent_version: CFG.consent_version};
+    if (!reconsent) { ex.employee_id = $('eid').value; ex.phone = $('ph').value; ex.name = $('nm').value; ex.nickname = $('nk').value; if ($('jc')) ex.join_code = $('jc').value; }
+    busy(b, call('register', ex)).then(function (me) { ME = me; TAB = 'cls'; return load(); }, fail);
+  };
+}
+function bookConfirm(s) {
+  var body = '<div class="t">' + h(s.class_name) + '</div><div class="m">' + h(fd(s.date)) + ' · ' + h(s.start_time) + (s.instructor ? ' · ' + h(s.instructor) : '') + '</div><div class="m">' + h(L('ราคา ', 'Price ')) + h(money(s.price)) + ' ' + h(L('บาท', 'THB')) + '</div>' +
+    '<div class="note">' + h(s.auto_confirm ? L('ระบบจะล็อกที่นั่งให้ทันที แล้วท่านโอนเงินและส่งสลิปในแชต LINE ภายในเวลาที่กำหนด', 'Your seat is held immediately. Pay and send the slip in the LINE chat before the deadline.') : L('ส่งคำขอจอง ทีมงานจะยืนยันและแจ้งวิธีโอนเงินให้', 'Your request is sent. The team will confirm and tell you how to pay.')) + '</div>';
+  confirmBox(L('ยืนยันการจอง', 'Confirm booking'), body, L('จอง', 'Book'), false, function () {
+    return call('book', {session_id: s.id}).then(function (r) { TAB = 'my'; return load().then(function () { if (r.status === 'ยืนยันแล้ว') payInfo(r.booking_id); }); });
+  });
+}
+var SES = [];
+function viewClasses() {
+  var out = '<h2>' + h(L('คลาสที่จองได้', 'Available classes')) + '</h2>';
+  if (!SES.length) out += '<div class="card center m">' + h(L('ตอนนี้ยังไม่มีรอบที่เปิดให้จอง', 'No sessions are open for booking right now.')) + '</div>';
+  var last = '';
+  SES.forEach(function (s) {
+    if (s.date !== last) { out += '<h2>' + h(fd(s.date)) + '</h2>'; last = s.date; }
+    var act = s.mine ? stTag(s.mine.status) : (s.left < 1 ? '<span class="tag bad">' + h(L('เต็ม', 'Full')) + '</span>' : '<button class="pri" data-b="' + h(s.id) + '">' + h(L('จอง', 'Book')) + '</button>');
+    out += '<div class="card"><div class="row"><div><div class="t">' + h(s.start_time) + ' · ' + h(s.class_name) + '</div><div class="m">' + h(s.instructor || '') + (s.instructor ? ' · ' : '') + h(s.duration_min) + ' ' + h(L('นาที', 'min')) + ' · ' + h(money(s.price)) + ' ' + h(L('บาท', 'THB')) + '</div><div class="m">' + h(s.left < 1 ? '' : L('ว่าง ' + s.left + ' ที่', s.left + ' seat(s) left')) + '</div></div><div>' + act + '</div></div></div>';
+  });
+  return out;
+}
+var BK = [];
+function viewMy() {
+  var out = '<h2>' + h(L('การจองของฉัน', 'My bookings')) + '</h2>';
+  if (!BK.length) out += '<div class="card center m">' + h(L('ยังไม่มีรายการจอง', 'No bookings yet.')) + '</div>';
+  BK.forEach(function (b) {
+    var btns = '';
+    if (b.status === 'ยืนยันแล้ว') btns += '<button class="pri" data-p="' + h(b.id) + '">' + h(L('วิธีชำระเงิน', 'How to pay')) + '</button> ';
+    if (b.can_cancel) btns += '<button class="bad" data-cx="' + h(b.id) + '">' + h(L('ยกเลิก', 'Cancel')) + '</button>';
+    out += '<div class="card"><div class="row"><div><div class="t">' + h(b.class_name) + '</div><div class="m">' + h(fd(b.date)) + ' · ' + h(b.start_time) + '</div><div class="m">' + h(money(b.price)) + ' ' + h(L('บาท', 'THB')) + '</div></div><div>' + stTag(b.status) + '</div></div>' +
+      (b.session_cancelled ? '<div class="note">' + h(L('รอบนี้ถูกยกเลิกโดยผู้ดูแล', 'This session was cancelled by the administrator.')) + '</div>' : '') + (b.lock_until && b.status === 'ยืนยันแล้ว' ? '<div class="note">' + h(L('โอนภายใน ', 'Pay before ')) + h(b.lock_until.slice(0, 16)) + '</div>' : '') + (btns ? '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">' + btns + '</div>' : '') + '</div>';
+  });
+  return out;
+}
+function viewMe() {
+  var m = ME.member || {};
+  return '<h2>' + h(L('โปรไฟล์', 'Profile')) + '</h2><div class="card"><div class="t">' + h(m.name) + (m.nickname ? ' (' + h(m.nickname) + ')' : '') + '</div><div class="m">' + h(L('รหัสพนักงาน ', 'Employee ID ')) + h(m.employee_id) + '</div><div class="m">' + h(L('การจองที่ยังไม่ชำระ ', 'Unpaid bookings ')) + h(ME.open) + ' / ' + h(ME.max_open) + '</div></div>' + contactHtml() +
+    '<h2>' + h(L('ข้อมูลส่วนบุคคล', 'Your personal data')) + '</h2><div class="card"><p class="m" style="margin-top:0">' + h(L('ท่านถอนความยินยอมได้ทุกเมื่อ ระบบจะยกเลิกการจองที่ยังไม่ชำระในอนาคตและเลิกผูกบัญชี LINE นี้ หลังถอนจะจองผ่านระบบนี้ไม่ได้', 'You may withdraw consent at any time. Future unpaid bookings will be cancelled and this LINE account unlinked. You will not be able to book through this system afterwards.')) + '</p><button class="bad wide" id="wd">' + h(L('ถอนความยินยอม', 'Withdraw consent')) + '</button></div>';
+}
+function payInfo(id) {
+  call('payinfo', {booking_id: id}).then(function (p) {
+    var d = modal('<h3 style="margin:0 0 8px">' + h(L('วิธีชำระเงิน', 'How to pay')) + '</h3><div class="t" style="font-size:22px">' + h(money(p.amount)) + ' ' + h(L('บาท', 'THB')) + '</div>' +
+      (p.lock_until ? '<div class="note">' + h(L('โอนภายใน ', 'Pay before ')) + h(p.lock_until.slice(0, 16)) + '</div>' : '') +
+      (p.bank_name || p.account_no ? '<div class="card"><div class="m">' + h(p.bank_name) + ' · ' + h(p.account_name) + '</div><div class="copy"><b>' + h(p.account_no) + '</b><button data-cp>' + h(L('คัดลอก', 'Copy')) + '</button></div></div>' : '<div class="note">' + h(L('ติดต่อผู้ดูแลเพื่อขอเลขบัญชี', 'Ask the administrator for the account number.')) + '</div>') +
+      (p.qr ? '<div class="center" style="padding:6px"><img alt="QR" style="max-width:220px;width:100%" id="qrimg"></div>' : '') + (p.note ? '<div class="m">' + h(p.note) + '</div>' : '') +
+      '<div class="note">' + h(L('โอนแล้วส่งรูปสลิปในแชต LINE ของโครงการนี้ ทีมงานจะตรวจและยืนยันให้', 'After paying, send the slip photo in this project\'s LINE chat. The team will verify it.')) + '</div>' + (p.contact ? '<div class="m">' + h(p.contact) + '</div>' : '') +
+      '<div class="acts"><button data-x>' + h(L('ปิด', 'Close')) + '</button>' + (window.liff && liff.isInClient && liff.isInClient() ? '<button class="pri" data-cl>' + h(L('ไปส่งสลิปในแชต', 'Go to chat')) + '</button>' : '') + '</div>');
+    if (p.qr) d.querySelector('#qrimg').src = p.qr;
+    d.querySelector('[data-x]').onclick = d.close;
+    var cp = d.querySelector('[data-cp]'); if (cp) cp.onclick = function () { try { navigator.clipboard.writeText(p.account_no); cp.textContent = L('คัดลอกแล้ว', 'Copied'); } catch (e) { cp.textContent = p.account_no; } };
+    var cl = d.querySelector('[data-cl]'); if (cl) cl.onclick = function () { liff.closeWindow(); };
+  }, fail);
+}
+function bind() {
+  document.querySelectorAll('[data-b]').forEach(function (b) { b.onclick = function () { bookConfirm(SES.filter(function (s) { return s.id === b.getAttribute('data-b'); })[0]); }; });
+  document.querySelectorAll('[data-p]').forEach(function (b) { b.onclick = function () { payInfo(b.getAttribute('data-p')); }; });
+  document.querySelectorAll('[data-cx]').forEach(function (b) { b.onclick = function () {
+    var id = b.getAttribute('data-cx'); confirmBox(L('ยกเลิกการจอง', 'Cancel booking'), '<p>' + h(L('ยืนยันยกเลิกการจองนี้?', 'Cancel this booking?')) + '</p>', L('ยกเลิกการจอง', 'Cancel booking'), true, function () { return call('cancel', {booking_id: id}).then(load); }); }; });
+  var wd = $('wd'); if (wd) wd.onclick = function () {
+    confirmBox(L('ถอนความยินยอม', 'Withdraw consent'), '<p>' + h(L('ยืนยันถอนความยินยอม? บัญชีนี้จะใช้จองผ่านระบบไม่ได้อีก (รายการที่ชำระแล้วให้ติดต่อผู้ดูแล)', 'Withdraw consent? You will not be able to book with this account again (for paid bookings contact the administrator).')) + '</p>', L('ถอนความยินยอม', 'Withdraw'), true, function () {
+      return call('withdraw').then(function (r) { ME = {registered: false, config: CFG}; setNav(false); shell('<div class="card center"><p>' + h(L('ถอนความยินยอมเรียบร้อย', 'Consent withdrawn.')) + '</p>' + (r.paid_future ? '<p class="m">' + h(L('ท่านมีรายการที่ชำระแล้วในอนาคต ' + r.paid_future + ' รายการ กรุณาติดต่อผู้ดูแล', 'You have ' + r.paid_future + ' paid future booking(s). Please contact the administrator.')) + '</p>' : '') + '</div>' + contactHtml()); });
+    }); };
+}
+function draw() {
+  setNav(true);
+  shell(TAB === 'cls' ? viewClasses() : TAB === 'my' ? viewMy() : viewMe()); bind();
+}
+function load() {
+  var p = TAB === 'my' ? call('myBookings').then(function (r) { BK = r.bookings; }) : TAB === 'cls' ? call('sessions').then(function (r) { SES = r.sessions; }) : Promise.resolve();
+  return call('me').then(function (me) { ME = me; return p; }).then(draw, fail);
+}
+function start() {
+  call('config').then(function (c) {
+    CFG = c;
+    if (!c.enabled) return closedScreen(L('ระบบจองด้วยตนเองยังไม่เปิดใช้งาน', 'Self-booking is not open yet.'));
+    if (!c.ready) return closedScreen(L('ระบบยังไม่พร้อมให้สมัคร กรุณาติดต่อผู้ดูแล', 'Registration is not ready yet. Please contact the administrator.'));
+    return call('me').then(function (me) {
+      ME = me;
+      if (!me.registered) return consentScreen(false);
+      if (!me.consent_ok) return consentScreen(true);
+      return load();
+    });
+  }).catch(function (e) { closedScreen(errText(e && e.code, e && e.field)); });
+}
+function setLang(l) { LANG = l; try { localStorage.setItem('fb_lang', l); } catch (e) {} document.documentElement.lang = l; $('lg').textContent = l === 'th' ? 'EN' : 'TH'; }
+$('lg').onclick = function () { setLang(LANG === 'th' ? 'en' : 'th'); if (!ME) return; if (!ME.registered) consentScreen(false); else if (!ME.consent_ok) consentScreen(true); else draw(); };
+(function init() {
+  try { var sv = localStorage.getItem('fb_lang'); if (sv === 'en' || sv === 'th') setLang(sv); } catch (e) {}
+  if (!window.liff) { closedScreen('LINE SDK not loaded'); return; }
+  liff.init({liffId: LIFF_ID}).then(function () {
+    try { if (!localStorage.getItem('fb_lang') && String(liff.getLanguage()).indexOf('th') !== 0) setLang('en'); } catch (e) {}
+    if (!liff.isLoggedIn()) { liff.login({redirectUri: location.href}); return; }
+    start();
+  }).catch(function () { closedScreen(L('เปิดหน้านี้จากแอป LINE ผ่านลิงก์ของโครงการ', 'Please open this page from the LINE app using the project link.')); });
+})();
+</script>
+</body>
+</html>
